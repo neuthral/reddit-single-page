@@ -98,15 +98,13 @@
     position: relative;
     max-width: 600px;
     clear: both;
+    opacity: 1.0;
   }
   li.postCommentsContainer ul {
     margin: 0;
     padding: 0;
     list-style: none;
     font-size: small;
-  }
-  li.postCommentsContainer ul li:nth-child(odd) {
-    
   }
   li.postCommentsContainer ul li:nth-child(even) {
     color: #878787;
@@ -214,164 +212,171 @@
 
   <script>
     const ul = document.querySelector('#postsListContainer')
-const postTemplate = document.querySelector('#postRowTemplate')
-const commentsTemplate = document.querySelector('#postCommentsTemplate')
-const mediaTemplate = document.querySelector('#postMediaTemplate')
-var loading = false
+    const postTemplate = document.querySelector('#postRowTemplate')
+    const commentsTemplate = document.querySelector('#postCommentsTemplate')
+    const mediaTemplate = document.querySelector('#postMediaTemplate')
+    var loading = false
 
-function setAttributes(el, attrs) {
-    for (var key in attrs) {
-        el.setAttribute(key, attrs[key]);
+    function setAttributes(el, attrs) {
+        for (var key in attrs) {
+            el.setAttribute(key, attrs[key]);
+        }
     }
-}
-var urlObject = {
-    domain: 'https://www.reddit.com',
-    sub: '/r/funny',
-    path: '/.json',
-    limit: `?limit=100`,
+    var urlObject = {
+        domain: 'https://www.reddit.com',
+        sub: '/r/funny',
+        path: '/.json',
+        limit: `?limit=100`,
 
-    urlSub() {
-        return this.domain + this.sub + this.path
-    },
-}
+        urlSub() {
+            return this.domain + this.sub + this.path
+        },
+    }
 
-function makePost(p) {
-    let clone = postTemplate.content.cloneNode(true)
-    let li = clone.querySelector('li')
+    function makePost(p) {
+        let clone = postTemplate.content.cloneNode(true)
+        let li = clone.querySelector('li')
 
-    setAttributes(li, {
-        'id': p.data.id,
-        'open': 'false',
-        'data-id': p.data.id,
-        'data-url': p.data.permalink,
-        'data-text': p.data.selftext,
-        'data-image': (p.data.is_self || p.data.is_video || p.data.is_meta) ? '' : p.data.url
-    })
-
-    if (p.data.is_video) {
         setAttributes(li, {
-            'data-media-0': p.data.secure_media.reddit_video.hls_url,
-            'data-media-1': p.data.secure_media.reddit_video.dash_url,
-            'data-media-2': p.data.secure_media.reddit_video.fallback_url,
-            'data-media-width': (p.data.secure_media.reddit_video.width > 600) ? 600 : p.data.secure_media.reddit_video.width
+            'id': p.data.id,
+            'open': 'false',
+            'data-id': p.data.id,
+            'data-url': p.data.permalink,
+            'data-text': p.data.selftext,
+            'data-image': (p.data.is_self || p.data.is_video || p.data.is_meta) ? '' : p.data.url
         })
+
+        if (p.data.is_video) {
+            setAttributes(li, {
+                'data-media-0': p.data.secure_media.reddit_video.hls_url,
+                'data-media-1': p.data.secure_media.reddit_video.dash_url,
+                'data-media-2': p.data.secure_media.reddit_video.fallback_url,
+                'data-media-width': (p.data.secure_media.reddit_video.width > 600) ? 600 : p.data.secure_media.reddit_video.width
+            })
+        }
+
+        clone.querySelector('object').data = p.data.thumbnail
+        if (
+            p.data.thumbnail == 'default' ||
+            p.data.thumbnail == 'self' ||
+            p.data.thumbnail == 'nsfw'
+        ) {
+            clone.querySelector('object > img').src = `https://via.placeholder.com/128x96.png?text=${p.data.thumbnail}`
+        }
+
+        let header = clone.querySelector('header')
+        header.textContent = p.data.title.substring(0, 192)
+        header.textContent += (p.data.is_video) ? ' --- [VIDEO] ' : ' '
+        let sub = document.createElement('i')
+        sub.classList.add('yellow-text')
+        sub.textContent = 'r/' + p.data.subreddit
+        header.appendChild(sub)
+
+        let date = new Date(p.data.created * 1000)
+        let footers = clone.querySelectorAll('footer > span')
+        footers[0].textContent = p.data.author
+        footers[1].textContent = p.data.ups
+        footers[2].textContent = date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear()
+        footers[3].textContent = p.data.num_comments
+
+        ul.appendChild(clone)
+
+        return p.data
     }
 
-    clone.querySelector('object').data = p.data.thumbnail
-    if (
-        p.data.thumbnail == 'default' ||
-        p.data.thumbnail == 'self' ||
-        p.data.thumbnail == 'nsfw'
-    ) {
-        clone.querySelector('object > img').src = `https://via.placeholder.com/128x96.png?text=${p.data.thumbnail}`
+    function handlePostClose(target) {
+        if (target.getAttribute('open') == 'true') {
+            target.setAttribute('open', 'false')
+
+            //let el = document.getElementById(`#${target.id}`)
+            let el = target.querySelector('.postCommentsContainer')
+            el.remove()
+            console.log('removed element', el)
+        }
     }
 
-    let header = clone.querySelector('header')
-    header.textContent = p.data.title.substring(0, 192)
-    header.textContent += (p.data.is_video) ? ' --- [VIDEO] ' : ' '
-    let sub = document.createElement('i')
-    sub.classList.add('yellow-text')
-    sub.textContent = 'r/' + p.data.subreddit
-    header.appendChild(sub)
+    function handlePostOpen(target) {
+        if (target.getAttribute('open') == 'false') {
+            let clone = commentsTemplate.content.cloneNode(true)
 
-    let date = new Date(p.data.created * 1000)
-    let footers = clone.querySelectorAll('footer > span')
-    footers[0].textContent = p.data.author
-    footers[1].textContent = p.data.ups
-    footers[2].textContent = date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear()
-    footers[3].textContent = p.data.num_comments
+            if (target.getAttribute('data-media-1') || target.getAttribute('data-media-2')) {
+                let mediaClone = mediaTemplate.content.cloneNode(true)
+                mediaClone.querySelector('video').width = screen.width // target.getAttribute('data-media-width')
 
-    ul.appendChild(clone)
+                let sources = mediaClone.querySelectorAll('source')
+                sources[0].src = target.getAttribute('data-media-0')
+                sources[1].src = target.getAttribute('data-media-2')
+                sources[2].src = target.getAttribute('data-media-2')
 
-    return p.data
-}
+                clone.querySelector('header').appendChild(mediaClone)
 
-function handlePostClose(target) {
-    if (target.getAttribute('open') == 'true') {
-        target.setAttribute('open', 'false')
-        document.querySelector(`#${target.id}-open`).remove()
-    }
-}
+            } else[
+                clone.querySelector('img').src = target.getAttribute('data-image')
+            ]
 
-function handlePostOpen(target) {
-    if (target.getAttribute('open') == 'false') {
-        let clone = commentsTemplate.content.cloneNode(true)
+            clone.querySelector('.links > a').href = urlObject.domain + target.getAttribute('data-url')
+            clone.querySelector('.links > a').textContent = target.getAttribute('data-url')
+            clone.querySelector('.text').textContent = target.getAttribute('data-text')
 
-        if (target.getAttribute('data-media-1') || target.getAttribute('data-media-2')) {
-            let mediaClone = mediaTemplate.content.cloneNode(true)
-            mediaClone.querySelector('video').width = screen.width // target.getAttribute('data-media-width')
-
-            let sources = mediaClone.querySelectorAll('source')
-            sources[0].src = target.getAttribute('data-media-0')
-            sources[1].src = target.getAttribute('data-media-2')
-            sources[2].src = target.getAttribute('data-media-2')
-
-            clone.querySelector('header').appendChild(mediaClone)
-
-        } else[
-            clone.querySelector('img').src = target.getAttribute('data-image')
-        ]
-
-        clone.querySelector('.links > a').href = urlObject.domain + target.getAttribute('data-url')
-        clone.querySelector('.links > a').textContent = target.getAttribute('data-url')
-        clone.querySelector('.text').textContent = target.getAttribute('data-text')
-
-        setAttributes(target, {
-            'open': true,
-            'style': 'opacity: 0.5;'
-        })
-        //target.setAttribute('open', 'true')
-
-        let newEl = document.createElement('li')
-        newEl.appendChild(clone)
-        newEl.id = target.id + '-open'
-        newEl.classList.add('postCommentsContainer')
-        target.insertAdjacentElement('afterend', newEl)
-
-        fetch(urlObject.domain + target.getAttribute('data-url') + '.json?limit=6').then((response) => {
-            response.json().then((data) => {
-                console.log(data[1].data.children)
-                data[1].data.children.slice(1).forEach(async com => {
-                    let li = document.createElement('li')
-
-                    if (com.kind == 't1') li.textContent = '-- ' + com.data.body
-                    if (com.kind == 'more') li.textContent = '...'
-
-                    newEl.querySelector('ul').appendChild(li)
-                })
+            setAttributes(target, {
+                'open': true,
+                //'style': 'opacity: 0.5;'
+            })
+            setAttributes(target.querySelector('object'), {
+              'style' : 'opacity: 0.5;'
             })
 
-        })
+            let newEl = document.createElement('li')
+            newEl.appendChild(clone)
+            newEl.id = target.id
+            newEl.classList.add('postCommentsContainer')
+            //target.appendChild(newEl)
+            target.insertAdjacentElement('beforeend', newEl)
+            console.log('created element', newEl)
+            /*
+            fetch(urlObject.domain + target.getAttribute('data-url') + '.json?limit=6').then((response) => {
+                response.json().then((data) => {
+                    console.log(data[1].data.children)
+                    data[1].data.children.slice(1).forEach(async com => {
+                        let li = document.createElement('li')
 
-    } else handlePostClose(target)
-}
+                        if (com.kind == 't1') li.textContent = '-- ' + com.data.body
+                        if (com.kind == 'more') li.textContent = '...'
 
-function fetchPosts(url) {
-    try {
-        return fetch(url).then((response) => {
-            response.json()
-                .then((data) => {
-                    data.data.children.forEach(async p => makePost(p))
-
-                    console.log(data)
-                    document.querySelector('#prevPageLink').href = `index.html?count=${data.data.children.length}&before=${data.data.children[0].data.name}`
-                    document.querySelector('#nextPageLink').href = `index.html?count=${data.data.children.length}&after=${data.data.after}`
+                        newEl.querySelector('ul').appendChild(li)
+                    })
                 })
-                .then(loading = false)
-                .catch(err => { return err })
-        })
-    } catch (error) {
-        console.error(error)
+            })
+            */
+        } else handlePostClose(target)
     }
-}
 
-(() => {
-    let url = new URL(window.location)
-    console.log(url)
-    fetchPosts(urlObject.urlSub() + url.search)
+    function fetchPosts(url) {
+        try {
+            return fetch(url).then((response) => {
+                response.json()
+                    .then((data) => {
+                        data.data.children.forEach(async p => makePost(p))
 
-    document.querySelector('#urlPath').textContent = urlObject.sub + urlObject.path + urlObject.limit + url.search
-})()
+                        console.log(data)
+                        document.querySelector('#prevPageLink').href = `index.html?count=${data.data.children.length}&before=${data.data.children[0].data.name}`
+                        document.querySelector('#nextPageLink').href = `index.html?count=${data.data.children.length}&after=${data.data.after}`
+                    })
+                    .then(loading = false)
+                    .catch(err => { return err })
+            })
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    (() => {
+        let url = new URL(window.location)
+        console.log(url)
+        fetchPosts(urlObject.urlSub() + url.search)
+
+        document.querySelector('#urlPath').textContent = urlObject.sub + urlObject.path + urlObject.limit + url.search
+    })()
   </script>
 </body>
 
