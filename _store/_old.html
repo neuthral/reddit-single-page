@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+
+<head>
+    <title>reddit client</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+    <div class="container" id="container">
+        <ul class="posts" id="posts">
+            <li id="postUrl"></li>
+            <li><br></li>
+        </ul>
+        
+    </div>
+    
+</body>
+
+<script>
+    (function() {
+        const fetchPosts = async (postSub) => {
+            if (localStorage.getItem(postSub)) {
+                return Promise.resolve(JSON.parse(localStorage.getItem(postSub)))
+            } else {
+                var page = 0
+                var postUrl = `https://www.reddit.com/${postSub}.json`
+                return fetch(postUrl)
+                    .then(res => res.json())
+                    .then(res => {
+                        page++
+                        var store = []
+                        res.data.children.forEach(c => {
+                            let newPost = {
+                                author:         c.data.author,
+                                created:        c.data.created_utc,
+                                downs:          c.data.downs,
+                                id:             c.data.id,
+                                is_video:       c.data.is_video,
+                                name:           c.data.name,
+                                num_comments:   c.data.num_comments,
+                                permalink:      c.data.permalink,
+                                subreddit:      c.data.subreddit,
+                                title:          c.data.title,
+                                thumbnail:      (validURL(c.data.thumbnail)) ? c.data.thumbnail : `https://via.placeholder.com/140x100/${c.data.id}/FFFFFF?Text=${c.data.id}`,
+                                ups:            c.data.ups,
+                                url:            c.data.url
+                            }
+                            store.push(newPost)
+                        })
+                    })
+                    .then(store => {
+                        localStorage.setItem(postSub, JSON.stringify(store))
+                    })
+                    .then(store => {
+                        return Promise.resolve(store)
+                    })
+            }
+        }
+
+        
+        var postSub = 'hot'
+        document.getElementById('postUrl').textContent = 'r/'+postSub
+        
+        var newPosts = fetchPosts(postSub).then(newPosts => {
+            
+            /*
+            for (newPost of newPosts) {
+                let li = document.createElement('li')
+                li.id = newPost.id
+                li.className = 'post'
+                li.innerHTML = `<img src=${newPost.thumbnail} height=100 width=140>`
+                    let div = document.createElement('div')
+                    div.className = 'text'
+                        let divTitle = document.createElement('p')
+                        divTitle.innerHTML = newPost.title
+                        divTitle.style = 'font-size:16px;'
+                        div.appendChild(divTitle)
+                        
+                        let divSub = document.createElement('p')
+                        divSub.innerHTML = `<b style="color:#AD7F4F;">&#8743;</b> ${newPost.ups} <b style="color:#AD7F4F;">&#8744;</b> ${newPost.downs}</b>`
+                        div.appendChild(divSub)
+                        divSub = document.createElement('p')
+                        divSub.style = 'color:#97956E;'
+                        divSub.innerHTML = `<u>${newPost.author}</u> <i>${newPost.created}</i> <b>r/${newPost.subreddit}</b>`
+                        div.appendChild(divSub)
+                    li.appendChild(div)
+                document.querySelector('#posts').appendChild(li)
+                li.onclick = (e) => {
+                    e.preventDefault()
+                    toggleComments(newPost.permalink, li.id)
+                }
+            }
+            */
+        })
+    })()
+        
+    function toggleComments(permalink, elementId) {
+        if(document.getElementById('comments-'+elementId)) {
+            let el = document.getElementById('comments-'+elementId)
+            el.remove()
+            document.querySelector('#'+elementId).style = 'background-color:#17140F;'
+        } else {
+            let commentsDiv = document.createElement('div')
+            commentsDiv.className = 'comments-div'
+            commentsDiv.id = 'comments-'+elementId
+            let ulComments = document.createElement('ul')
+            ulComments.style = 'font-size:12px;'
+            commentsDiv.appendChild(ulComments)
+            document.querySelector('#'+elementId).appendChild(commentsDiv)
+            document.querySelector('#'+elementId).style = 'background-color:#2C2B20;'
+            
+            var newComments = []
+            if (localStorage.getItem(elementId)) {
+                newComments = JSON.parse(localStorage.getItem(elementId))
+            } else {
+                newComments = fetchComments(permalink)
+                localStorage.setItem(elementId, JSON.stringify(newComments))
+            }
+            newComments.forEach(com => {
+                let liComment = document.createElement('li')
+                liComment.textContent = (com.data.body) ? `[${com.data.author}] ` + com.data.body : ''
+                ulComments.appendChild(liComment)
+                //console.log(com.data.body);
+            })
+        }
+        
+    }
+    // get subreddit new posts
+    // https://www.reddit.com/r/subReddit/.json
+    // get post comments
+    // https://www.reddit.com/r/Damnthatsinteresting/comments/xp7en8/michael_jackson_using_his_deep_voice_during_a/.json
+    // /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(data.url)
+    function validURL(str) {
+        var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
+            '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+            '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+            '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+            '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+            '(\\#[-a-z\\d_]*)?$','i') // fragment locator
+        return !!pattern.test(str)
+    }
+
+    function fetchComments(permalink) {
+        let url = `https://www.reddit.com${permalink}.json?limit=10`
+        fetch(url)
+            .then(res => res.json())
+            .then(res => {
+                var store = []
+                var data = res[1].data.children
+                console.log(data)
+                data.forEach(com => {
+                    if (com.kind == "more") {
+
+                    } else {
+                        
+                    }
+                })
+            })
+            .then(store => {
+                return store
+            })
+    }
+</script>
+
+</html>

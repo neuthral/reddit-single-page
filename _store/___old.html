@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <title>Document</title>
+    <style>
+        body {
+            background-color: #171717;
+            margin: 0;
+            padding: 0;
+        }
+
+        .no-padding {
+            padding: 0;
+            margin: 0;
+        }
+
+        .green {
+            background-color: #6EAA44;
+        }
+
+        .green-text {
+            color: #6EAA44;
+        }
+
+        .red {
+            background-color: #FF2266;
+        }
+
+        .red-text {
+            color: #FF2266;
+        }
+
+        .light {
+            background-color: #F7FAED;
+        }
+
+        .light-text {
+            color: #F7FAED;
+        }
+
+        .blue {
+            background-color: #00AAFF;
+        }
+
+        .blue-text {
+            color: #00AAFF;
+        }
+
+        .dark {
+            background-color: #171717;
+        }
+
+        .dark-text {
+            color: #171717;
+        }
+
+        .gray {
+            background-color: #202124;
+        }
+
+        .gray-text {
+            color: #202124;
+        }
+
+        li.post-container {
+            border-bottom: 0;
+            border-right: 8px solid #171717;
+            margin-bottom: 16px;
+        }
+        li.post-container:hover {
+            cursor: pointer;
+            border-right: 8px solid gray;
+        }
+        li.li-comment {
+            list-style: square;
+        }
+        video {
+            max-height: 50%;
+            max-width: 100%;
+        }
+        .w3-display-topright {
+            text-align: right;
+        }
+        .w3-display-left, .w3-display-middle, .w3-display-right {
+            top: 96%;
+        }
+    </style>
+</head>
+
+<body class="w3-content no-padding">
+    <div class="w3-row w3-mobile no-padding light-text">
+        <ul class="w3-ul w3-border-0 w3-mobile" id="postsList">
+            <li class="w3-margin-left w3-border-0">
+                <h2 class=" no-padding">r/subreddit</h2>
+            </li>
+            <header class="w3-container no-padding">
+                <div class="w3-bar gray no-padding">
+                    <button class="w3-bar-item w3-button">London</button>
+                    <button class="w3-bar-item w3-button">Paris</button>
+                    <button class="w3-bar-item w3-button">Tokyo</button>
+                </div>
+            </header>
+        </ul>
+    </div>
+
+    <script>
+        class CommentsElement {
+            constructor(data) {
+                this.id = 'comments-' + data.data.id
+                this.data = data.data
+                console.log(this.id)
+            }
+            mediaHtml() {
+                if(this.data.is_video) {
+                    if(this.data.media.reddit_video) {
+                        return `
+                        <video width="${this.data.media.reddit_video.width}" height="${this.data.media.reddit_video.height}" controls autoplay>
+                            <source src="${this.data.media.reddit_video.dash_url}" type="video/mp4">
+                            <source src="${this.data.media.reddit_video.fallback_url}" type="video/ogg">
+                        Your browser does not support the video tag.
+                        </video>`
+                    }
+                } else {
+                    if(this.data.url) return`<img src="${this.data.url}" style="max-width: 100%;">`
+                }
+            }
+            html() {
+                let element = document.createElement('ul')
+                element.id = this.id
+                element.classList.add('w3-ul')
+                element.innerHTML = `
+                    <header class="w3-container w3-center">
+                        ${this.mediaHtml()}
+                    </header>
+                    <li class="w3-border-0 w3-padding-16">
+                        <h2>${(this.data.self_text || this.data.title)}</h2>
+                    </li>
+                    <li class="w3-row w3-border-0 w3-panel w3-padding-16 gray">
+                        <a href="https://www.reddit.com/user/${this.data.author}" style="text-decoration:none;">
+                            <b class="red-text">[</b>
+                            <b class="blue-text">u/${this.data.author}</b>
+                            <b class="red-text">]</b>
+                        </a>
+                        <b class="green-text">&#8865;</b> 
+                        <b> ${this.data.num_comments} </b>
+                        <b class="green-text">&#8743;</b> 
+                        <b>${this.data.ups} </b>
+                        <a href="${this.data.permalink}" class="light-text" style="text-decoration:none;">
+                            <i class="blue-text">${this.data.permalink}</i>
+                        </a>
+                    </li>
+                `
+
+                return element
+            }
+        }
+        class PostElement {
+            constructor(post) {
+                this.data = JSON.stringify(post.data)
+                this.id = post.data.id
+                this.title = post.data.title
+                this.author = post.data.author
+                this.created = post.data.created
+                this.comments = post.data.num_comments
+                this.domain = post.data.domain
+                this.ups = post.data.ups
+                this.downs = post.data.downs
+                this.thumb = post.data.thumbnail
+                this.is_video = post.data.is_video
+                this.media = post.data.media
+                this.url = post.data.url
+                this._permalink = post.data.permalink
+                this.permalink = `https://www.reddit.com${post.data.permalink}.json?limit=10`
+                this.subreddit = post.data.subreddit
+                this.self_text = post.data.selftext
+                this.commentsObject = {}
+
+            }
+            getDate() {
+                let d = new Date(this.created * 1000)
+                return `( ${d.getHours()}:${d.getMinutes()} ) ${d.getDay()}-${d.getMonth()}-${d.getFullYear()}`
+            }
+            getThumb() {
+                if (this.is_video) {
+                    return `https://via.placeholder.com/140x100?text=video`
+                } else {
+                    return (/\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(this.thumb)) ? this.thumb :
+                        `https://via.placeholder.com/128x96`
+                }
+            }
+            getType() {
+                return (this.is_video) ? 'video ' + this.domain : this.domain
+            }
+            html() {
+                let el = document.createElement('li')
+                el.id = this.id
+                el.classList.add('w3-row', 'post-container')
+                el.innerHTML = `
+                    <div class="w3-display-container w3-col" style="height:116px;">
+                        <div class="w3-display-topleft w3-quarter">
+                            <img src="${this.getThumb()}" height="96px" width="128px">
+                        </div>
+                        <div class="w3-display-topright" style="width: 65%; word-break: break-word;">
+                            ${(this.title.substring(0, 80))}
+                        </div>
+                        <div class="w3-display-left w3-small">
+                            <span class="w3-text-gray">${this.getType()}</span>
+                        </div>
+                        
+                        <div class="w3-display-right w3-small">
+                            <span class="red-text">${this.author}</span> 
+                            <span class="blue-text">${this.getDate()}</span>
+                            <span class="w3-tag">${this.comments} comments</span>
+                        </div>
+                    </div>
+                `
+                return el
+            }
+        }
+
+        (function () {
+            var loading = false;
+            var postOpen = false; // post.id
+
+            let fetchPromise = fetch(`https://www.reddit.com/r/funny/.json`)
+            fetchPromise.then((response) => {
+                let jsonPromise = response.json()
+                jsonPromise.then((data) => {
+                        let posts = []
+                        data.data.children.forEach(async p => {
+                            let post = new PostElement(p)
+                            posts.push(p) // localStorage
+
+                            let element = post.html()
+                            element.addEventListener('click', (e) => {
+                                e.preventDefault()
+
+                                if (postOpen == false) {
+                                    if (!post.commentsObject.data) post.commentsObject = new CommentsElement(p)
+
+                                    postOpen = post.id
+
+                                    let comElement = post.commentsObject.html()
+
+                                    //element.classList.add('w3-border')
+                                    element.appendChild(comElement)
+
+                                    if (loading == false) {
+                                        loading = true
+
+                                        let fetchPromise = fetch(post.permalink)
+                                        fetchPromise.then((response) => {
+                                            let jsonPromise = response.json()
+                                            jsonPromise.then((data) => {
+                                                console.log(data[1].data.children)
+
+                                                data[1].data
+                                                    .children
+                                                    .forEach(c => {
+                                                        let li = document.createElement('li')
+                                                        li.textContent = c.data.body
+                                                        li.classList.add('w3-small','w3-border-0')
+                                                        comElement.appendChild(li)
+                                                    })
+                                            })
+                                        })
+                                    }
+                                } else {
+                                    console.log(postOpen)
+                                    let open = document.getElementById(`comments-${postOpen}`)
+                                    open.remove()
+
+                                    postOpen = false
+                                }
+                            })
+                            document.getElementById('postsList').appendChild(element)
+                        })
+
+                        return posts
+                    })
+                    .then(posts => console.log('posts', posts))
+                    .catch(err => errorHandler(err))
+                    .finally(this.loading = false)
+            })
+
+        })()
+    </script>
+</body>
+
+</html>

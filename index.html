@@ -148,7 +148,12 @@
           <span style='font-size: 80px;'>&#127751;</span> reddit client
         </h1>
       </a>
-      <p>single page reddit client written woth vanilla JS + CSS + HTML</p>
+      <small>
+        <a href="https://github.com/neuthral/reddit-single-page">https://github.com/neuthral/reddit-single-page</a>
+        <br>single page reddit client written with vanilla JS + CSS + HTML
+        <br>there are still minor bugs, 
+        <br><b>TODO</b> be able to change subreddit, import user conf
+      </small>
     </div>
 
     <p class="top-links">
@@ -217,6 +222,7 @@
     const postTemplate = document.querySelector('#postRowTemplate')
     const commentsTemplate = document.querySelector('#postCommentsTemplate')
     const mediaTemplate = document.querySelector('#postMediaTemplate')
+    var visitedPosts = JSON.parse(localStorage.getItem('visited')) || []
     var loading = false
 
     function setAttributes(el, attrs) {
@@ -320,22 +326,24 @@
             clone.querySelector('.links > a').textContent = target.getAttribute('data-url')
             clone.querySelector('.text').textContent = target.getAttribute('data-text')
 
-            setAttributes(target, {
-                'open': true,
-                //'style': 'opacity: 0.5;'
-            })
-            setAttributes(target.querySelector('object'), {
-              'style' : 'opacity: 0.5;'
+            setAttributes(target, { 'open': true })
+            
+            let visitedElements = ['div.postTextContainer', 'object']
+            visitedElements.forEach((el)=>{
+              setAttributes(target.querySelector(el), {
+                'style' : 'opacity: 0.5;'
+              })
             })
 
+            // create post element
             let newEl = document.createElement('li')
             newEl.appendChild(clone)
             newEl.id = target.id
             newEl.classList.add('postCommentsContainer')
-            //target.appendChild(newEl)
             target.insertAdjacentElement('beforeend', newEl)
             console.log('created element', newEl)
             /*
+            // fetch post comments
             fetch(urlObject.domain + target.getAttribute('data-url') + '.json?limit=6').then((response) => {
                 response.json().then((data) => {
                     console.log(data[1].data.children)
@@ -350,6 +358,8 @@
                 })
             })
             */
+            this.visitedPosts.push(target.id)
+            localStorage.setItem('visited', JSON.stringify(this.visitedPosts))
         } else handlePostClose(target)
     }
 
