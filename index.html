@@ -156,7 +156,7 @@
       </small>
     </div>
 
-    <p class="top-links">
+    <p id="pageLinks" class="top-links">
       <small id="urlPath" class="yellow-text"></small>
       <a id="prevPageLink" href="" class="red-text">
         <b class="blue-text">[</b>previous page<b class="blue-text">]</b>
@@ -375,6 +375,10 @@
                         document.querySelector('#nextPageLink').href = `index.html?count=${data.data.children.length}&after=${data.data.after}`
                     })
                     .then(loading = false)
+                    .then(() => {
+                        let clone = document.querySelector('#pageLinks').cloneNode(true)
+                        document.querySelector('#postsListContainer').insertAdjacentElement('afterend', clone)
+                    })
                     .catch(err => { return err })
             })
         } catch (error) {
