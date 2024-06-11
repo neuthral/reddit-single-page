@@ -3,6 +3,7 @@
 <title>reddit client</title>
 <meta charset="UTF-8">
 <meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
 <style>
   body {
     font-family: 'Trebuchet MS', sans-serif;
@@ -157,6 +158,13 @@
     </div>
 
     <p id="pageLinks" class="top-links">
+
+      <select id="sub-select" onchange="urlObject.changeSub(this.value)">
+        <option value="funny" selected>r/funny</option>
+        <option value="memes">r/memes</option>
+        <option value="cats">r/cats</option>
+      </select>
+
       <small id="urlPath" class="yellow-text"></small>
       <a id="prevPageLink" href="" class="red-text">
         <b class="blue-text">[</b>previous page<b class="blue-text">]</b>
@@ -239,6 +247,9 @@
         urlSub() {
             return this.domain + this.sub + this.path
         },
+        changeSub(sub) {
+          fetchPosts(this.domain + `/r/${sub}` + this.path)
+        }
     }
 
     function makePost(p) {
@@ -249,25 +260,26 @@
             'id': p.data.id,
             'open': 'false',
             'data-id': p.data.id,
-            'data-url': p.data.permalink,
+            'data-url': p.data.url,
             'data-text': p.data.selftext,
-            'data-image': (p.data.is_self || p.data.is_video || p.data.is_meta) ? '' : p.data.url
+            'data-image': p.data.thumbnail // (p.data.is_self || p.data.is_video || p.data.is_meta) ? '' :
         })
 
         if (p.data.is_video) {
             setAttributes(li, {
-                'data-media-0': p.data.secure_media.reddit_video.hls_url,
-                'data-media-1': p.data.secure_media.reddit_video.dash_url,
-                'data-media-2': p.data.secure_media.reddit_video.fallback_url,
-                'data-media-width': (p.data.secure_media.reddit_video.width > 600) ? 600 : p.data.secure_media.reddit_video.width
+                'data-media-0': p.data.media.reddit_video.hls_url,
+                'data-media-1': p.data.media.reddit_video.dash_url,
+                'data-media-2': p.data.media.reddit_video.fallback_url,
+                'data-media-width': (p.data.media.reddit_video.width > 600) ? 600 : p.data.secure_media.reddit_video.width
             })
+            clone.querySelector('object > img').src = `https://fakeimg.pl/128x96/383434/909090?text=video&font=museo`
         }
-
+        
         clone.querySelector('object').data = p.data.thumbnail
         if (
             p.data.thumbnail == 'default' ||
             p.data.thumbnail == 'self' ||
-            p.data.thumbnail == 'nsfw'
+            p.data.thumbnail == 'nsfw' 
         ) {
             clone.querySelector('object > img').src = `https://via.placeholder.com/128x96.png?text=${p.data.thumbnail}`
         }
@@ -313,13 +325,14 @@
 
                 let sources = mediaClone.querySelectorAll('source')
                 sources[0].src = target.getAttribute('data-media-0')
-                sources[1].src = target.getAttribute('data-media-2')
+                sources[1].src = target.getAttribute('data-media-1')
                 sources[2].src = target.getAttribute('data-media-2')
 
                 clone.querySelector('header').appendChild(mediaClone)
 
-            } else[
-                clone.querySelector('img').src = target.getAttribute('data-image')
+            } else [
+                // not video shit here 
+                clone.querySelector('img').src = target.getAttribute('data-url')
             ]
 
             clone.querySelector('.links > a').href = urlObject.domain + target.getAttribute('data-url')
