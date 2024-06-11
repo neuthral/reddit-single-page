@@ -1,5 +1,5 @@
 # Single page Reddit client
-<span style='font-size: 80px;'>&#127751;</span>
+# <span style='font-size: 80px;'>&#127751;</span>
 
 ## made for collection of single page web-apps where all code is in the .html file
 
