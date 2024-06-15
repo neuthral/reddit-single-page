@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <title>reddit client</title>
 <meta charset="UTF-8">
+<meta name="description" content="minimal reddit client in single page html made in vanilla javascript without third party libraries etc.">
 <meta name='viewport' content='width=device-width, initial-scale=1'>
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <style>
@@ -70,12 +71,14 @@
 
   .container {
     max-width: 600px;
+    float: left;
   }
 
   .top-links {
     display: block;
     width: 100%;
     text-align: right;
+    font-size: larger;
   }
 
   .top-links a {
@@ -85,7 +88,6 @@
   #urlPath {
     font-family: 'Courier New', Courier, monospace;
     font-size: larger;
-    float: left;
   }
 
   ul.posts-container {
@@ -206,24 +208,19 @@
 
 <body>
   <div class='container'>
+
     <div style="display:flex; height: 96px;">
       <span style='font-size: 74px;'>&#127751;</span>
       <span style="align-self: flex-end; font-size: 60px;">
-        reddit client
+        reddit client 
       </span>
     </div>
 
     <ol id="subLinks" class="subs green-text"></ol>
 
-    <p id="pageLinks" class="top-links">
-      <small id="urlPath" class="yellow-text"></small>
-      <a id="prevPageLink" href="" class="red-text">
-        <b class="blue-text">[</b> previous page <b class="blue-text">]</b>
-      </a>
-      <a id="nextPageLink" href="">
-        <b class="blue-text">[</b> next page <b class="blue-text">]</b>
-      </a>
-    </p>
+    <p style="display: block; margin-bottom: 128px;"></p>
+
+    <small id="urlPath" class="yellow-text"></small>
 
     <ul id="postsListContainer" class="posts-container">
       <!-- data goes here -->
@@ -232,8 +229,8 @@
     <!-- template for post element-->
     <template id='postRowTemplate'>
       <li class="post" onclick="handlePostOpen(this)">
-        <object data="" type="image/jpg" height="96px" width="128px" loading="lazy">
-          <img src="" height="96px" width="128px" loading="lazy" />
+        <object data="" type="image/jpg" height="96px" width="128px" loading="lazy" title="post">
+          <img src="" height="96px" width="128px" loading="lazy" alt="post" />
         </object>
         <div class="postTextContainer">
           <header>{title}</header>
@@ -282,11 +279,18 @@
     const urlObject = {
       domain: 'https://www.reddit.com',
       sub: 'funny',
+      limit: 'limit=100',
+      query: window.location.search,
       urlSub() {
-        return `${this.domain}/r/${this.sub}/.json`
+        return `${this.domain}/r/${this.sub}/.json?${this.limit}`
       },
       changeSub(sub) {
+        this.sub = sub
+        this.query = ''
         return `${this.domain}/r/${sub}/.json`
+      },
+      setLinks(data) {
+        document.querySelector('#urlPath').innerHTML = this.urlSub() // `/r/${this.sub}/.json${this.query}`
       }
     }
     var subs = ['funny', 'memes', 'cats', 'world', 'linux', 'BeAmazed', 'Weird', 'WTF', 'PixelArt']
@@ -294,8 +298,7 @@
     const postTemplate = document.querySelector('#postRowTemplate')
     const commentsTemplate = document.querySelector('#postCommentsTemplate')
     const mediaTemplate = document.querySelector('#postMediaTemplate')
-
-    var ol = document.querySelector('#subLinks')
+    const ol = document.querySelector('#subLinks')
 
     subs.forEach(item => {
       let li = document.createElement('li')
@@ -305,9 +308,6 @@
     })
 
     fetchPosts(urlObject.urlSub())
-
-    //document.querySelector('#prevPageLink').href = `index.html?dist=${data.dist}&before=${data.before}`
-    //document.querySelector('#nextPageLink').href = `index.html?dist=${data.dist}&after=${data.after}`
 
     function setAttributes(el, attrs) {
       for (var key in attrs) {
@@ -322,12 +322,10 @@
         fetch(url).then((response) => {
           response.json()
             .then((data) => {
-              urlObject.after = data.data.after
-              urlObject.before = data.data.before
-              urlObject.dist = data.data.dist
               data.data.children.forEach(async p => makePost(p))
+              urlObject.setLinks(data)
             })
-            .finally(loading = false)
+            .then(loading = false)
             .catch(err => { return err })
         })
 
